@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blue Health — Dashboard Financeiro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#FAF9F5;--surface:#FFFFFF;--surface2:#F1EFE8;--line:rgba(40,40,40,0.12);
+  --line2:rgba(40,40,40,0.22);--text:#1A1915;--text2:#5F5E5A;--text3:#888780;
+  --blue:#185FA5;--blue-l:#E6F1FB;--green:#3B6D11;--green-l:#EAF3DE;
+  --red:#A32D2D;--red-l:#FCEBEB;--amber:#854F0B;--amber-l:#FAEEDA;
+  --teal:#0F6E56;--coral:#993C1D;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#1f1e1b;--surface:#262522;--surface2:#2f2e2a;--line:rgba(255,255,255,0.12);--line2:rgba(255,255,255,0.22);--text:#F1EFE8;--text2:#B4B2A9;--text3:#888780;--blue:#85B7EB;--blue-l:#0C447C;--green:#97C459;--green-l:#27500A;--red:#F09595;--red-l:#791F1F;--amber:#EF9F27;--amber-l:#633806;--teal:#5DCAA5;--coral:#F0997B;}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+.topbar{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.topbar h1{font-size:21px;font-weight:600;letter-spacing:-0.01em}
+.topbar .sub{font-size:13px;color:var(--text2);margin-top:3px}
+.selector{display:flex;align-items:center;gap:10px}
+.selector label{font-size:12px;color:var(--text2);font-weight:500}
+select{font-size:14px;font-weight:500;padding:8px 32px 8px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:24px;background:var(--surface2);padding:4px;border-radius:10px;width:fit-content}
+.tab{font-size:13px;font-weight:500;padding:8px 16px;color:var(--text2);cursor:pointer;border:none;background:none;border-radius:7px;transition:all .15s}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.tab:hover:not(.active){color:var(--text)}
+.panel{display:none;animation:fade .25s ease}.panel.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.toggle{display:inline-flex;background:var(--surface2);border-radius:8px;padding:3px;gap:2px}
+.toggle button{font-size:12px;font-weight:500;padding:6px 14px;border:none;background:none;color:var(--text2);cursor:pointer;border-radius:6px}
+.toggle button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,0.08)}
+.tgrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.tglabel{font-size:12px;color:var(--text2);font-weight:500}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:26px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.kpi-label{font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500}
+.kpi-val{font-size:24px;font-weight:600;letter-spacing:-0.02em;line-height:1.05}
+.kpi-row{display:flex;gap:12px;margin-top:8px;font-size:12px}
+.kpi-row span{display:inline-flex;align-items:center;gap:3px}
+.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--text3)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+.card h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.card .desc{font-size:12px;color:var(--text2);margin-bottom:16px}
+.chart-2col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:760px){.chart-2col{grid-template-columns:1fr}.topbar h1{font-size:18px}}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:12px;color:var(--text2)}
+.legend span{display:flex;align-items:center;gap:5px}
+.lsq{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.table-wrap{overflow-x:auto}
+table{width:100%;font-size:13px;border-collapse:collapse}
+th{font-size:11px;font-weight:600;color:var(--text2);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+td:first-child{text-align:left}
+tr.sub td{background:var(--surface2);font-weight:600}
+tr.tot td{background:var(--surface2);font-weight:700;border-top:2px solid var(--line2)}
+tr.pct td{color:var(--text2);font-size:12px;font-style:italic}
+.cpos{color:var(--green)}.cneg{color:var(--red)}
+.verdict{display:inline-block;font-size:13px;font-weight:700;padding:6px 16px;border-radius:8px;background:var(--amber-l);color:var(--amber);margin-bottom:8px}
+.exec-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.exec-grid{grid-template-columns:1fr}}
+.exec-box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.exec-box h4{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.exec-box.pos-b{border-left:3px solid var(--green)}.exec-box.att-b{border-left:3px solid var(--amber)}
+.exec-box.red-b{border-left:3px solid var(--red)}.exec-box.q-b{border-left:3px solid var(--blue)}
+.exec-box ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.exec-box li{font-size:12.5px;color:var(--text);padding-left:14px;position:relative;line-height:1.5}
+.exec-box li:before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--text3)}
+.concl{background:var(--surface2);border-radius:12px;padding:16px 18px;font-size:13px;line-height:1.65;margin-top:16px}
+.concl b{font-weight:600}
+.note{font-size:11.5px;color:var(--text2);font-style:italic;margin-top:12px;line-height:1.5}
+.src{font-size:11px;color:var(--text3);margin-top:24px;text-align:center}
+.pillsel{display:flex;gap:8px;flex-wrap:wrap}
+.pillsel button{font-size:12px;font-weight:500;padding:7px 13px;border:1px solid var(--line2);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer}
+.pillsel button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>Blue Health — Dashboard Financeiro</h1>
+      <div class="sub">Acompanhamento mensal de performance &nbsp;·&nbsp; R$ mil &nbsp;·&nbsp; Fonte: 032026_KPI_v3Fundos_vClaude.xlsx</div>
+    </div>
+    <div class="selector">
+      <label for="monthSel">Mês de análise</label>
+      <select id="monthSel" onchange="render()">
+        <option value="Jan">Janeiro 2026</option>
+        <option value="Fev">Fevereiro 2026</option>
+        <option value="Mar" selected>Março 2026</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="exec" onclick="showTab(this)">Executive Dashboard</button>
+    <button class="tab" data-tab="month" onclick="showTab(this)">Mês: Real vs Orç vs AA</button>
+    <button class="tab" data-tab="bu" onclick="showTab(this)">Top-line por BU</button>
+    <button class="tab" data-tab="bridges" onclick="showTab(this)">Bridges & KPI Analysis</button>
+  </div>
+
+  <div id="tab-exec" class="panel active"></div>
+  <div id="tab-month" class="panel"></div>
+  <div id="tab-bu" class="panel"></div>
+  <div id="tab-bridges" class="panel"></div>
+
+  <div class="src">Valores em R$ mil salvo indicação. Negativos entre parênteses. Margens sobre Receita Líquida.</div>
+</div>
+
+<script>
+const DATA = {"months": {"Jan": {"Receita Bruta": {"real": 32.3, "bgt": 29.7, "py": 21.6}, "Receita Líquida": {"real": 27.4, "bgt": 25.0, "py": 18.8}, "Lucro Bruto": {"real": 15.8, "bgt": 14.9, "py": 10.2}, "Margem de Servir": {"real": 12.6, "bgt": 11.8, "py": 7.2}, "EBITDA Ajustado": {"real": 8.6, "bgt": 7.8, "py": 3.1}, "EBITDA Contábil": {"real": 8.5, "bgt": 8.1, "py": 3.3}, "EBIT": {"real": 5.4, "bgt": 4.9, "py": 1.3}, "Lucro Líquido": {"real": 1.0, "bgt": -0.1, "py": -0.1}}, "Fev": {"Receita Bruta": {"real": 30.1, "bgt": 32.4, "py": 28.8}, "Receita Líquida": {"real": 26.4, "bgt": 27.4, "py": 24.4}, "Lucro Bruto": {"real": 16.9, "bgt": 15.7, "py": 11.7}, "Margem de Servir": {"real": 12.4, "bgt": 12.5, "py": 8.9}, "EBITDA Ajustado": {"real": 8.0, "bgt": 8.6, "py": 4.8}, "EBITDA Contábil": {"real": 7.8, "bgt": 8.8, "py": 4.5}, "EBIT": {"real": 4.7, "bgt": 5.6, "py": 2.9}, "Lucro Líquido": {"real": 1.0, "bgt": 0.8, "py": 1.2}}, "Mar": {"Receita Bruta": {"real": 39.9, "bgt": 36.0, "py": 30.9}, "Receita Líquida": {"real": 34.8, "bgt": 30.3, "py": 26.3}, "Lucro Bruto": {"real": 17.1, "bgt": 16.6, "py": 13.3}, "Margem de Servir": {"real": 13.1, "bgt": 13.3, "py": 10.5}, "EBITDA Ajustado": {"real": 9.4, "bgt": 9.3, "py": 6.6}, "EBITDA Contábil": {"real": 8.3, "bgt": 9.5, "py": 6.3}, "EBIT": {"real": 5.1, "bgt": 6.2, "py": 4.2}, "Lucro Líquido": {"real": 2.4, "bgt": 1.1, "py": 1.3}}}, "ytd": {"Receita Bruta": {"real": 102.2, "bgt": 98.2, "py": 81.4}, "Receita Líquida": {"real": 88.6, "bgt": 82.8, "py": 69.5}, "Lucro Bruto": {"real": 49.8, "bgt": 47.2, "py": 35.2}, "Margem de Servir": {"real": 38.1, "bgt": 37.5, "py": 26.7}, "EBITDA Ajustado": {"real": 26.0, "bgt": 25.7, "py": 14.6}, "EBITDA Contábil": {"real": 24.6, "bgt": 26.3, "py": 14.1}, "EBIT": {"real": 15.2, "bgt": 16.7, "py": 8.4}, "Lucro Líquido": {"real": 4.4, "bgt": 1.8, "py": 2.4}}, "bu_series": {"Imagem": [3.6, 5.9, 8.3, 4.9, 4.5, 1.1, 8.3, 8.4, 7.3, 8.0, 5.1, 6.0, 5.3, 5.0, 10.1], "Hospitalar": [2.6, 4.2, 3.2, 3.0, 11.9, 6.1, 2.2, 2.5, 4.5, 5.0, 4.0, 6.2, 2.3, 1.5, 4.2], "Service": [5.1, 6.2, 6.3, 6.9, 5.9, 8.4, 5.0, 4.3, 5.4, 6.6, 6.2, 6.3, 6.1, 5.3, 6.7], "Locação": [7.4, 8.1, 8.5, 8.9, 9.2, 9.1, 9.3, 9.9, 10.7, 11.5, 12.1, 13.3, 13.7, 14.6, 13.7]}, "bu_labels": ["Jan25", "Fev25", "Mar25", "Abr25", "Mai25", "Jun25", "Jul25", "Ago25", "Set25", "Out25", "Nov25", "Dez25", "Jan26", "Fev26", "Mar26"], "bu_month": {"Jan": {"Imagem": {"real": 5.3, "bgt": 2.8, "py": 3.6}, "Hospitalar": {"real": 2.3, "bgt": 3.0, "py": 2.6}, "Service": {"real": 6.1, "bgt": 5.9, "py": 5.1}, "Locação": {"real": 13.7, "bgt": 13.3, "py": 7.4}}, "Fev": {"Imagem": {"real": 5.0, "bgt": 5.0, "py": 5.9}, "Hospitalar": {"real": 1.5, "bgt": 3.0, "py": 4.2}, "Service": {"real": 5.3, "bgt": 6.0, "py": 6.2}, "Locação": {"real": 14.6, "bgt": 13.5, "py": 8.1}}, "Mar": {"Imagem": {"real": 10.1, "bgt": 7.5, "py": 8.3}, "Hospitalar": {"real": 4.2, "bgt": 3.0, "py": 3.2}, "Service": {"real": 6.7, "bgt": 6.1, "py": 6.3}, "Locação": {"real": 13.7, "bgt": 13.7, "py": 8.5}}}, "bu_ytd": {"Imagem": {"real": 20.4, "bgt": 15.3, "py": 17.8}, "Hospitalar": {"real": 7.9, "bgt": 9.0, "py": 10.0}, "Service": {"real": 18.2, "bgt": 17.9, "py": 17.6}, "Locação": {"real": 42.1, "bgt": 40.5, "py": 24.1}}, "bu_ltm": {"Imagem": 74.1, "Hospitalar": 53.4, "Service": 73.0, "Locação": 136.0}, "bridges": [{"short": "vs Orç (mês)", "period": "month", "vs": "orc", "startLabel": "EBITDA Aj — Orçamento", "start": 9296.9, "end": 9394.7, "totalVar": 97.9, "components": [{"name": "Volume (Receita)", "v": 2439.4, "pct": 24.928, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Margem bruta (Preço/Custo/Mix)", "v": -1932.0, "pct": -19.744, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Despesas Variáveis", "v": -631.4, "pct": -6.453, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Aluguel", "v": -21.2, "pct": -0.217, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Ocupação e Comunicação", "v": -178.3, "pct": -1.822, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Serviços de Terceiros", "v": 83.3, "pct": 0.851, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Marketing & Vendas", "v": 33.4, "pct": 0.341, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Despesas com Ativos", "v": 65.6, "pct": 0.671, "rec": "Avaliar", "ctrl": "Parcialmente"}, {"name": "Outras Gerais", "v": 212.5, "pct": 2.172, "rec": "Avaliar", "ctrl": "Parcialmente"}, {"name": "Folha Back Office", "v": -467.8, "pct": -4.781, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "PLR", "v": 494.3, "pct": 5.051, "rec": "Recorrente", "ctrl": "Controlável"}]}, {"short": "vs AA (mês)", "period": "month", "vs": "aa", "startLabel": "EBITDA Aj — Ano Anterior", "start": 6639.3, "end": 9394.7, "totalVar": 2755.4, "components": [{"name": "Volume (Receita)", "v": 4312.7, "pct": 1.565, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Margem bruta (Preço/Custo/Mix)", "v": -555.1, "pct": -0.201, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Despesas Variáveis", "v": -1099.5, "pct": -0.399, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Aluguel", "v": -4.9, "pct": -0.002, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Ocupação e Comunicação", "v": -138.8, "pct": -0.05, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Serviços de Terceiros", "v": 85.8, "pct": 0.031, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Marketing & Vendas", "v": 30.2, "pct": 0.011, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Despesas com Ativos", "v": -265.6, "pct": -0.096, "rec": "Avaliar", "ctrl": "Parcialmente"}, {"name": "Outras Gerais", "v": 125.9, "pct": 0.046, "rec": "Avaliar", "ctrl": "Parcialmente"}, {"name": "Folha Back Office", "v": 264.8, "pct": 0.096, "rec": "Recorrente", "ctrl": "Controlável"}]}, {"short": "vs Orç (YTD)", "period": "ytd", "vs": "orc", "startLabel": "EBITDA Aj — Orçamento YTD", "start": 25685.5, "end": 26022.5, "totalVar": 337.0, "components": [{"name": "Volume (Receita)", "v": 3324.7, "pct": 9.866, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Margem bruta (Preço/Custo/Mix)", "v": -699.3, "pct": -2.075, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Despesas Variáveis", "v": -2055.8, "pct": -6.1, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Aluguel", "v": 10.2, "pct": 0.03, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Ocupação e Comunicação", "v": -398.4, "pct": -1.182, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Serviços de Terceiros", "v": 144.5, "pct": 0.429, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Marketing & Vendas", "v": -304.7, "pct": -0.904, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Despesas com Ativos", "v": 229.1, "pct": 0.68, "rec": "Avaliar", "ctrl": "Parcialmente"}, {"name": "Outras Gerais", "v": 99.5, "pct": 0.295, "rec": "Avaliar", "ctrl": "Parcialmente"}, {"name": "Folha Back Office", "v": -1492.7, "pct": -4.429, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "PLR", "v": 1479.9, "pct": 4.391, "rec": "Recorrente", "ctrl": "Controlável"}]}, {"short": "vs AA (YTD)", "period": "ytd", "vs": "aa", "startLabel": "EBITDA Aj — Ano Anterior YTD", "start": 14629.0, "end": 26022.5, "totalVar": 11393.4, "components": [{"name": "Volume (Receita)", "v": 9689.6, "pct": 0.85, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Margem bruta (Preço/Custo/Mix)", "v": 4913.2, "pct": 0.431, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Despesas Variáveis", "v": -3145.8, "pct": -0.276, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Aluguel", "v": 18.6, "pct": 0.002, "rec": "Recorrente", "ctrl": "Parcialmente"}, {"name": "Ocupação e Comunicação", "v": -284.6, "pct": -0.025, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Serviços de Terceiros", "v": 19.1, "pct": 0.002, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Marketing & Vendas", "v": -316.0, "pct": -0.028, "rec": "Recorrente", "ctrl": "Controlável"}, {"name": "Despesas com Ativos", "v": -435.9, "pct": -0.038, "rec": "Avaliar", "ctrl": "Parcialmente"}, {"name": "Outras Gerais", "v": 18.4, "pct": 0.002, "rec": "Avaliar", "ctrl": "Parcialmente"}, {"name": "Folha Back Office", "v": 916.8, "pct": 0.08, "rec": "Recorrente", "ctrl": "Controlável"}]}], "kpi_seg": [{"seg": "Imagem", "real": 627.9, "bgt": 571.8, "py": 256.0, "dbps": -139.0}, {"seg": "Hospitalar", "real": -1265.3, "bgt": -200.1, "py": -42.5, "dbps": -2340.0}, {"seg": "Service", "real": 1533.6, "bgt": 640.0, "py": 1020.8, "dbps": 1228.0}, {"seg": "Locação", "real": 8498.5, "bgt": 8456.4, "py": 5404.9, "dbps": 21.0}], "ponteA": {"mes_orc": {"base": 30337.5, "comps": [{"name": "Imagem", "v": 2593.7}, {"name": "Hospitalar", "v": 1206.0}, {"name": "Service", "v": 638.8}, {"name": "Locação Imagem", "v": 298.8}, {"name": "Locação Hospitalar", "v": -277.5}], "real": 34797.2}, "ytd_orc": {"base": 82751.1, "comps": [{"name": "Imagem", "v": 5081.4}, {"name": "Hospitalar", "v": -1063.1}, {"name": "Service", "v": 257.5}, {"name": "Locação Imagem", "v": 1868.9}, {"name": "Locação Hospitalar", "v": -314.4}], "real": 88581.5}, "mes_aa": {"base": 26297.8, "comps": [{"name": "Imagem", "v": 1841.1}, {"name": "Hospitalar", "v": 1050.8}, {"name": "Service", "v": 415.2}, {"name": "Locação Imagem", "v": 3988.9}, {"name": "Locação Hospitalar", "v": 1203.4}], "real": 34797.2}, "ytd_aa": {"base": 69465.5, "comps": [{"name": "Imagem", "v": 2574.3}, {"name": "Hospitalar", "v": -2039.1}, {"name": "Service", "v": 577.6}, {"name": "Locação Imagem", "v": 13636.6}, {"name": "Locação Hospitalar", "v": 4366.7}], "real": 88581.5}}, "ponteB": {"mes_orc": {"base": 13255.5, "comps": [{"name": "Imagem — Top-line (volume)", "v": 528.9}, {"name": "Imagem — Margem (mix/preço/custo)", "v": -350.8}, {"name": "Hospitalar — Top-line (volume)", "v": 74.2}, {"name": "Hospitalar — Margem (mix/preço/custo)", "v": -1072.2}, {"name": "Service — Top-line (volume)", "v": 156.5}, {"name": "Service — Margem (mix/preço/custo)", "v": 607.8}, {"name": "Locação Imagem — Top-line (volume)", "v": 223.7}, {"name": "Locação Imagem — Margem (mix/preço/custo)", "v": -313.0}, {"name": "Locação Hospitalar — Top-line (volume)", "v": -204.6}, {"name": "Locação Hospitalar — Margem (mix/preço/custo)", "v": 54.2}, {"name": "Corporativo / não alocado", "v": 171.3}], "real": 13131.4}, "ytd_orc": {"base": 37539.0, "comps": [{"name": "Imagem — Top-line (volume)", "v": 923.6}, {"name": "Imagem — Margem (mix/preço/custo)", "v": -1098.4}, {"name": "Hospitalar — Top-line (volume)", "v": -69.3}, {"name": "Hospitalar — Margem (mix/preço/custo)", "v": -3210.6}, {"name": "Service — Top-line (volume)", "v": 65.0}, {"name": "Service — Margem (mix/preço/custo)", "v": 1146.8}, {"name": "Locação Imagem — Top-line (volume)", "v": 1404.7}, {"name": "Locação Imagem — Margem (mix/preço/custo)", "v": 793.7}, {"name": "Locação Hospitalar — Top-line (volume)", "v": -231.4}, {"name": "Locação Hospitalar — Margem (mix/preço/custo)", "v": 220.3}, {"name": "Corporativo / não alocado", "v": 625.2}], "real": 38108.6}, "mes_aa": {"base": 10473.4, "comps": [{"name": "Imagem — Top-line (volume)", "v": 325.2}, {"name": "Imagem — Margem (mix/preço/custo)", "v": -74.3}, {"name": "Hospitalar — Top-line (volume)", "v": 139.1}, {"name": "Hospitalar — Margem (mix/preço/custo)", "v": -1370.4}, {"name": "Service — Top-line (volume)", "v": 127.6}, {"name": "Service — Margem (mix/preço/custo)", "v": 187.2}, {"name": "Locação Imagem — Top-line (volume)", "v": 3145.3}, {"name": "Locação Imagem — Margem (mix/preço/custo)", "v": -717.9}, {"name": "Locação Hospitalar — Top-line (volume)", "v": 910.1}, {"name": "Locação Hospitalar — Margem (mix/preço/custo)", "v": -13.8}, {"name": "Corporativo / não alocado", "v": 0}], "real": 13131.4}, "ytd_aa": {"base": 26651.6, "comps": [{"name": "Imagem — Top-line (volume)", "v": 331.8}, {"name": "Imagem — Margem (mix/preço/custo)", "v": -19.6}, {"name": "Hospitalar — Top-line (volume)", "v": -255.5}, {"name": "Hospitalar — Margem (mix/preço/custo)", "v": -3688.2}, {"name": "Service — Top-line (volume)", "v": 153.4}, {"name": "Service — Margem (mix/preço/custo)", "v": 908.1}, {"name": "Locação Imagem — Top-line (volume)", "v": 10665.7}, {"name": "Locação Imagem — Margem (mix/preço/custo)", "v": -159.6}, {"name": "Locação Hospitalar — Top-line (volume)", "v": 3154.9}, {"name": "Locação Hospitalar — Margem (mix/preço/custo)", "v": 365.9}, {"name": "Corporativo / não alocado", "v": 0}], "real": 38108.6}}, "kpi_note": "A Receita supera o orçamento puxada por Imagem e Hospitalar, mas o EBITDA não acompanha: Hospitalar destrói margem (EBITDA negativo) enquanto Locação sustenta o resultado. Fonte: aba KPI Analysis.", "exec": {"verdict": "PARTIALLY ON TRACK", "verdictNote": "Receita acima do orçamento, porém com compressão de margem bruta e EBITDA Contábil abaixo do plano.", "kpis_month": [{"label": "Receita Líquida", "fmtVal": "34,8mm", "unit": "R$", "dOrc": 14.7, "dAA": 32.3, "bps": false}, {"label": "Lucro Bruto", "fmtVal": "17,1mm", "unit": "R$", "dOrc": 3.1, "dAA": 28.2, "bps": false}, {"label": "Margem Bruta", "fmtVal": "49,1%", "unit": "", "dOrc": -555, "dAA": -150, "bps": true}, {"label": "EBITDA Ajustado", "fmtVal": "9,4mm", "unit": "R$", "dOrc": 1.1, "dAA": 41.5, "bps": false}, {"label": "Margem EBITDA Aj.", "fmtVal": "27,0%", "unit": "", "dOrc": -365, "dAA": 190, "bps": true}, {"label": "EBITDA Contábil", "fmtVal": "8,3mm", "unit": "R$", "dOrc": -12.2, "dAA": 32.2, "bps": false}, {"label": "Lucro Líquido", "fmtVal": "2,4mm", "unit": "R$", "dOrc": 123.0, "dAA": 87.0, "bps": false}], "kpis_ytd": [{"label": "Receita Líquida YTD", "fmtVal": "88,6mm", "unit": "R$", "dOrc": 7.0, "dAA": 27.5, "bps": false}, {"label": "Lucro Bruto YTD", "fmtVal": "49,8mm", "unit": "R$", "dOrc": 5.6, "dAA": 41.5, "bps": false}, {"label": "Margem Bruta YTD", "fmtVal": "56,2%", "unit": "", "dOrc": -79, "dAA": 560, "bps": true}, {"label": "EBITDA Aj. YTD", "fmtVal": "26,0mm", "unit": "R$", "dOrc": 1.3, "dAA": 77.9, "bps": false}, {"label": "Margem EBITDA YTD", "fmtVal": "29,4%", "unit": "", "dOrc": -166, "dAA": 830, "bps": true}, {"label": "EBITDA Contábil YTD", "fmtVal": "24,6mm", "unit": "R$", "dOrc": -6.7, "dAA": 74.2, "bps": false}, {"label": "Lucro Líquido YTD", "fmtVal": "4,4mm", "unit": "R$", "dOrc": 143.9, "dAA": 85.3, "bps": false}], "positives": ["Receita líquida de R$34,8mm: +14,7% vs orçamento e +32,3% vs ano anterior, puxada por Imagem (+34% vs orç) e Hospitalar (+40% vs orç).", "EBITDA Ajustado de R$9,4mm: +1,1% vs orçamento e +41,5% vs ano anterior; no YTD, +77,9% vs ano anterior (R$26,0mm vs R$14,6mm).", "Lucro líquido de R$2,4mm (+123% vs orçamento), beneficiado por resultado financeiro de R$-2,6mm vs R$-4,6mm orçado (+R$2,0mm).", "Locação cresceu +61% vs ano anterior (39% da receita) — base recorrente em expansão."], "attention": ["Margem bruta de 49,1% vs 54,7% orçada (-555 bps): a receita não converteu em lucro bruto na proporção esperada (Lucro Bruto +3,1% apesar de receita +14,7%).", "Margem EBITDA Ajustada de 27,0% vs 30,6% orçada (-365 bps): alavancagem operacional abaixo do plano.", "EBITDA Contábil de R$8,3mm, -12,2% vs orçamento, impactado por ajustes IFRS16/não recorrentes de -R$1,1mm (vs 0 orçado).", "Locação, maior segmento (39% da receita), ficou apenas +0,2% vs orçamento — beat concentrado em Imagem/Hospitalar."], "redflags": ["Qualidade do EBITDA: ajustes IFRS16/NR de -R$1,1mm no mês reduzem o EBITDA contábil vs gerencial — confirmar recorrência e natureza.", "PLR realizada = 0 no mês vs -R$0,5mm orçado (-R$1,5mm YTD): possível postergação de provisão, com risco de catch-up de despesa adiante.", "Compressão de margem bruta acelera no mês (-555 bps) vs YTD (-79 bps): possível deterioração recente de mix/custo unitário.", "D&A +44% vs ano anterior e Depreciação IFRS16 elevada (R$-0,5mm): checar capex/novos contratos de locação e impacto futuro no EBIT."], "questions": ["O que explica a queda de ~560 bps na margem bruta vs orçamento no mês? É mix (Locação/Seminovos), preço ou custo unitário?", "Os ajustes de IFRS16/não recorrentes de R$1,1mm são pontuais? Qual a expectativa para os próximos meses?", "Por que a PLR não foi provisionada no mês? Haverá catch-up no 2º semestre?", "A força de Imagem (+34%) e Hospitalar (+40%) vs orçamento é sustentável ou houve antecipação (phasing) de receita?", "O aumento de Folha Back Office vs orçamento (-R$0,5mm) é estrutural ou pontual?"], "conclusion": "PARTIALLY ON TRACK. A empresa supera o orçamento em receita (+14,7% no mês) e o EBITDA Ajustado fica em linha com o plano (+1,1%), mas a conversão é limitada pela compressão de margem bruta (-555 bps) e por ajustes não recorrentes que derrubam o EBITDA Contábil (-12,2% vs orçamento). Tese preservada no acumulado (EBITDA Aj YTD +77,9% vs ano anterior), com atenção à qualidade do resultado e à sustentabilidade do mix."}, "ponteC": {"mes_orc": {"base": 9296.9, "comps": [{"name": "Imagem", "v": 56.1}, {"name": "Hospitalar", "v": -1065.2}, {"name": "Service", "v": 893.6}, {"name": "Locação Imagem", "v": 83.5}, {"name": "Locação Hospitalar", "v": -41.4}, {"name": "Corporativo / não alocado", "v": 171.3}], "real": 9394.7}, "ytd_orc": {"base": 25685.5, "comps": [{"name": "Imagem", "v": -761.3}, {"name": "Hospitalar", "v": -3038.2}, {"name": "Service", "v": 1524.8}, {"name": "Locação Imagem", "v": 1946.9}, {"name": "Locação Hospitalar", "v": 39.5}, {"name": "Corporativo / não alocado", "v": 625.2}], "real": 26022.5}, "mes_aa": {"base": 6639.3, "comps": [{"name": "Imagem", "v": 371.9}, {"name": "Hospitalar", "v": -1222.8}, {"name": "Service", "v": 512.8}, {"name": "Locação Imagem", "v": 2236.6}, {"name": "Locação Hospitalar", "v": 856.9}, {"name": "Corporativo / não alocado", "v": 0}], "real": 9394.7}, "ytd_aa": {"base": 14629.0, "comps": [{"name": "Imagem", "v": 623.9}, {"name": "Hospitalar", "v": -3228.4}, {"name": "Service", "v": 1638.4}, {"name": "Locação Imagem", "v": 9217.3}, {"name": "Locação Hospitalar", "v": 3142.2}, {"name": "Corporativo / não alocado", "v": 0}], "real": 26022.5}}};
+let charts={};
+function destroy(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+const fmt=(v,d=1)=>(v<0?'(':'')+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+(v<0?')':'');
+const pct=v=>(v>=0?'+':'')+v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+const pctV=(a,b)=>b===0?0:((a-b)/Math.abs(b))*100;
+const MONTH_FULL={Jan:'Janeiro 2026',Fev:'Fevereiro 2026',Mar:'Março 2026'};
+const MONTH_IDX={Jan:0,Fev:1,Mar:2};
+const BU_COLORS={Imagem:'--teal',Hospitalar:'--coral',Service:'--amber','Locação':'--blue'};
+
+// view-mode state per tab
+const ALL_BU=['Imagem','Hospitalar','Service','Locação'];
+const state={exec:'month',month:'month',bu:'month',buSel:[...ALL_BU],buBridgeVs:'orc',bridgePeriod:'month',buBridgeVs2:'orc',bridgeBU:'Total'};
+
+function toggleBU(bu){
+  const i=state.buSel.indexOf(bu);
+  if(i>=0){ if(state.buSel.length>1) state.buSel.splice(i,1); }
+  else state.buSel.push(bu);
+  render();
+}
+function setAllBU(){ state.buSel=[...ALL_BU]; render(); }
+
+function showTab(btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  render();
+}
+function activeTab(){return document.querySelector('.tab.active').dataset.tab;}
+function curMonth(){return document.getElementById('monthSel').value;}
+function render(){const t=activeTab();if(t==='exec')renderExec();if(t==='month')renderMonth();if(t==='bu')renderBU();if(t==='bridges')renderBridges();}
+function setState(k,v){state[k]=v;render();}
+
+function toggleHTML(key,opts){
+  return `<div class="toggle">${opts.map(o=>`<button class="${state[key]===o.v?'active':''}" onclick="setState('${key}','${o.v}')">${o.t}</button>`).join('')}</div>`;
+}
+
+// ---------- EXECUTIVE ----------
+function renderExec(){
+  const e=DATA.exec, mode=state.exec;
+  const kpis=(mode==='month'?e.kpis_month:e.kpis_ytd).map(k=>{
+    const cls=v=>v>=0?'pos':'neg';
+    const orcTxt=k.bps?(k.dOrc>=0?'+':'')+Math.round(k.dOrc)+' bps vs orç':pct(k.dOrc)+' vs orç';
+    const aaTxt=k.bps?(k.dAA>=0?'+':'')+Math.round(k.dAA)+' bps vs AA':pct(k.dAA)+' vs AA';
+    return `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-val">${k.unit?k.unit+' ':''}${k.fmtVal}</div>
+      <div class="kpi-row"><span class="${cls(k.dOrc)}">${orcTxt}</span><span class="${cls(k.dAA)}">${aaTxt}</span></div></div>`;
+  }).join('');
+  document.getElementById('tab-exec').innerHTML=`
+    <div style="margin-bottom:18px"><div class="verdict">Veredito: ${e.verdict}</div>
+      <p style="font-size:13.5px;color:var(--text2);max-width:760px">${e.verdictNote}</p></div>
+    <div class="tgrow"><span class="tglabel">Big numbers:</span>${toggleHTML('exec',[{v:'month',t:'Mês (Mar/26)'},{v:'ytd',t:'Acumulado (YTD)'}])}</div>
+    <div class="kpi-grid">${kpis}</div>
+    <div class="exec-grid">
+      <div class="exec-box pos-b"><h4 style="color:var(--green)">✔ Destaques positivos</h4><ul>${e.positives.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+      <div class="exec-box att-b"><h4 style="color:var(--amber)">⚠ Pontos de atenção</h4><ul>${e.attention.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+      <div class="exec-box red-b"><h4 style="color:var(--red)">⛔ Red flags</h4><ul>${e.redflags.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+      <div class="exec-box q-b"><h4 style="color:var(--blue)">❓ Perguntas ao management</h4><ul>${e.questions.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+    </div>
+    <div class="concl"><b>Conclusão.</b> ${e.conclusion}</div>`;
+}
+
+// ---------- MONTH ----------
+function renderMonth(){
+  const m=curMonth(), mode=state.month;
+  const src=mode==='month'?DATA.months[m]:DATA.ytd;
+  const title=mode==='month'?MONTH_FULL[m]:'Acumulado YTD (até Mar/26)';
+  const order=['Receita Bruta','Receita Líquida','Lucro Bruto','Margem de Servir','EBITDA Ajustado','EBITDA Contábil','EBIT','Lucro Líquido'];
+  const rolR=src['Receita Líquida'].real,rolB=src['Receita Líquida'].bgt,rolP=src['Receita Líquida'].py;
+  const rows=order.map(name=>{
+    const d=src[name],vB=d.real-d.bgt,vA=d.real-d.py;
+    const sub=['Receita Líquida','Lucro Bruto','EBITDA Ajustado','EBITDA Contábil','Lucro Líquido'].includes(name);
+    const isE=name==='EBITDA Ajustado';let mg='';
+    if(['Lucro Bruto','EBITDA Ajustado','EBITDA Contábil'].includes(name)){
+      const a=d.real/rolR*100,b=d.bgt/rolB*100,c=d.py/rolP*100;
+      mg=`<tr class="pct"><td>&nbsp;&nbsp;Margem (% ROL)</td><td>${a.toFixed(1)}%</td><td>${b.toFixed(1)}%</td><td>${c.toFixed(1)}%</td>
+        <td class="${a-b>=0?'cpos':'cneg'}">${(a-b>=0?'+':'')+Math.round((a-b)*100)} bps</td><td>–</td>
+        <td class="${a-c>=0?'cpos':'cneg'}">${(a-c>=0?'+':'')+Math.round((a-c)*100)} bps</td><td>–</td></tr>`;
+    }
+    return `<tr class="${isE?'tot':(sub?'sub':'')}"><td>${name}</td><td>${fmt(d.real)}</td><td>${fmt(d.bgt)}</td><td>${fmt(d.py)}</td>
+      <td class="${vB>=0?'cpos':'cneg'}">${vB>=0?'+':''}${fmt(vB)}</td><td class="${vB>=0?'cpos':'cneg'}">${pct(pctV(d.real,d.bgt))}</td>
+      <td class="${vA>=0?'cpos':'cneg'}">${vA>=0?'+':''}${fmt(vA)}</td><td class="${vA>=0?'cpos':'cneg'}">${pct(pctV(d.real,d.py))}</td></tr>${mg}`;
+  }).join('');
+  document.getElementById('tab-month').innerHTML=`
+    <div class="card">
+      <div class="tgrow"><span class="tglabel">Visão da tabela:</span>${toggleHTML('month',[{v:'month',t:'Mês selecionado'},{v:'ytd',t:'Acumulado YTD'}])}</div>
+      <h3>DRE — ${title}: Real vs Orçamento vs Ano Anterior</h3>
+      <div class="desc">Valores em R$ mil. Margens sobre Receita Líquida.</div>
+      <div class="table-wrap"><table><thead><tr><th style="min-width:180px">Conta</th><th>Real</th><th>Orçamento</th><th>Ano Ant.</th><th>Δ vs Orç</th><th>Δ% Orç</th><th>Δ vs AA</th><th>Δ% AA</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </div>
+    <div class="chart-2col">
+      <div class="card"><h3>Receita Líquida — tendência mensal</h3><div class="desc">Real 2026 vs Budget vs Real 2025</div><div style="position:relative;height:240px"><canvas id="mRev"></canvas></div></div>
+      <div class="card"><h3>EBITDA Ajustado — tendência mensal</h3><div class="desc">Real 2026 vs Budget vs Real 2025</div><div style="position:relative;height:240px"><canvas id="mEbitda"></canvas></div></div>
+    </div>`;
+  drawTrend('mRev','Receita Líquida',m);
+  drawTrend('mEbitda','EBITDA Ajustado',m);
+}
+function drawTrend(id,metric,m){
+  destroy(id);const idx=MONTH_IDX[m];const M=['Jan','Fev','Mar'];
+  charts[id]=new Chart(document.getElementById(id),{type:'line',
+    data:{labels:M,datasets:[
+      {label:'Real 2026',data:M.map(x=>DATA.months[x][metric].real),borderColor:css('--blue'),backgroundColor:'transparent',borderWidth:2.5,pointRadius:M.map((x,i)=>i===idx?6:3),tension:.3},
+      {label:'Budget 2026',data:M.map(x=>DATA.months[x][metric].bgt),borderColor:css('--text3'),borderDash:[5,3],borderWidth:1.5,pointRadius:3,tension:0},
+      {label:'Real 2025',data:M.map(x=>DATA.months[x][metric].py),borderColor:css('--green'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3}]},
+    options:baseOpts('R$ ',true)});
+}
+
+// ---------- TOP-LINE BY BU ----------
+function renderBU(){
+  const m=curMonth(),mode=state.bu;
+  const allBU=ALL_BU;
+  const sel=state.buSel;
+  const showBU=allBU.filter(b=>sel.includes(b));
+  const tableSrc=mode==='month'?DATA.bu_month[m]:DATA.bu_ytd;
+  const tableTitle=mode==='month'?MONTH_FULL[m]:'Acumulado YTD (até Mar/26)';
+  const allSel=sel.length===allBU.length;
+  const pills=`<div class="pillsel">
+    <button class="${allSel?'active':''}" onclick="setAllBU()">Todas</button>
+    ${allBU.map(b=>`<button class="${sel.includes(b)?'active':''}" onclick="toggleBU('${b}')">${b}</button>`).join('')}
+  </div>`;
+  document.getElementById('tab-bu').innerHTML=`
+    <div class="tgrow"><span class="tglabel">Selecionar BUs:</span>${pills}</div>
+    <div class="card">
+      <h3>Receita Líquida por BU ao longo do tempo</h3>
+      <div class="desc">Colunas empilhadas — Real mensal, Jan/2025 a Mar/2026. R$ mm.${!allSel?' Exibindo: '+showBU.join(', '):''}</div>
+      <div class="legend" id="buLegend"></div>
+      <div style="position:relative;height:340px"><canvas id="buStack"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Mix de receita por BU</h3>
+      <div class="desc">Participação de cada BU — comparando mês, acumulado do ano e últimos 12 meses</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+        <div style="text-align:center"><div class="desc" style="margin-bottom:8px">${MONTH_FULL[m]}</div><div style="position:relative;height:200px"><canvas id="mixMonth"></canvas></div></div>
+        <div style="text-align:center"><div class="desc" style="margin-bottom:8px">Acumulado YTD</div><div style="position:relative;height:200px"><canvas id="mixYTD"></canvas></div></div>
+        <div style="text-align:center"><div class="desc" style="margin-bottom:8px">Últimos 12 meses</div><div style="position:relative;height:200px"><canvas id="mixLTM"></canvas></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tgrow"><span class="tglabel">Visão da tabela:</span>${toggleHTML('bu',[{v:'month',t:'Mês selecionado'},{v:'ytd',t:'Acumulado YTD'}])}</div>
+      <h3>Receita por BU — Real vs Orç vs AA</h3>
+      <div class="desc">${tableTitle} · R$ mm</div>
+      <div class="table-wrap" id="buTable"></div>
+    </div>
+    <div class="card">
+      <h3>Bridge de top-line por BU</h3>
+      <div class="desc">Contribuição de cada BU para a variação de Receita Líquida. R$ mil.</div>
+      <div class="tgrow">
+        <span class="tglabel">Comparação:</span>${toggleHTML('buBridgeVs',[{v:'orc',t:'vs Orçamento'},{v:'aa',t:'vs Ano Anterior'}])}
+        <span class="tglabel" style="margin-left:8px">Período:</span>${toggleHTML('bu',[{v:'month',t:'Mês'},{v:'ytd',t:'YTD'}])}
+      </div>
+      <div style="position:relative;height:320px"><canvas id="buBridge"></canvas></div>
+    </div>`;
+
+  // stacked series — only selected BUs
+  document.getElementById('buLegend').innerHTML=showBU.map(k=>`<span><span class="lsq" style="background:${css(BU_COLORS[k])}"></span>${k}</span>`).join('');
+  destroy('buStack');
+  charts.buStack=new Chart(document.getElementById('buStack'),{type:'bar',
+    data:{labels:DATA.bu_labels,datasets:showBU.map(bu=>({label:bu,data:DATA.bu_series[bu],backgroundColor:css(BU_COLORS[bu]),borderRadius:2}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': R$ '+c.parsed.y.toFixed(1)+'mm'}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:css('--text3'),font:{size:10},maxRotation:45,minRotation:45}},y:{stacked:true,grid:{color:css('--line')},ticks:{color:css('--text3'),callback:v=>'R$'+v}}}}});
+
+  // mix donuts — highlight selected BUs, dim the unselected
+  drawMix('mixMonth',allBU.map(k=>DATA.bu_month[m][k].real),allBU,sel);
+  drawMix('mixYTD',allBU.map(k=>DATA.bu_ytd[k].real),allBU,sel);
+  drawMix('mixLTM',allBU.map(k=>DATA.bu_ltm[k]),allBU,sel);
+
+  // table — only selected BUs; total still over all BUs
+  const tot=allBU.reduce((a,k)=>({real:a.real+tableSrc[k].real,bgt:a.bgt+tableSrc[k].bgt,py:a.py+tableSrc[k].py}),{real:0,bgt:0,py:0});
+  const trows=showBU.map(k=>{const d=tableSrc[k];
+    return `<tr><td>${k}</td><td>${fmt(d.real*1000,0)}</td><td>${fmt(d.bgt*1000,0)}</td><td>${fmt(d.py*1000,0)}</td>
+      <td class="${pctV(d.real,d.bgt)>=0?'cpos':'cneg'}">${pct(pctV(d.real,d.bgt))}</td>
+      <td class="${pctV(d.real,d.py)>=0?'cpos':'cneg'}">${pct(pctV(d.real,d.py))}</td><td>${(d.real/tot.real*100).toFixed(0)}%</td></tr>`;}).join('');
+  document.getElementById('buTable').innerHTML=`<table><thead><tr><th style="min-width:140px">Segmento</th><th>Real</th><th>Orç</th><th>AA</th><th>Δ% Orç</th><th>Δ% AA</th><th>Mix</th></tr></thead><tbody>${trows}
+    <tr class="tot"><td>Total Receita Líquida</td><td>${fmt(tot.real*1000,0)}</td><td>${fmt(tot.bgt*1000,0)}</td><td>${fmt(tot.py*1000,0)}</td>
+    <td class="${pctV(tot.real,tot.bgt)>=0?'cpos':'cneg'}">${pct(pctV(tot.real,tot.bgt))}</td><td class="${pctV(tot.real,tot.py)>=0?'cpos':'cneg'}">${pct(pctV(tot.real,tot.py))}</td><td>100%</td></tr></tbody></table>`;
+
+  // BU bridge (Ponte A)
+  const key=(mode==='month'?'mes':'ytd')+'_'+state.buBridgeVs;
+  drawWaterfall('buBridge',DATA.ponteA[key].base,DATA.ponteA[key].comps,DATA.ponteA[key].real);
+}
+function drawMix(id,vals,labels,sel){
+  destroy(id);
+  const colors=labels.map(k=>sel.includes(k)?css(BU_COLORS[k]):css('--line2'));
+  charts[id]=new Chart(document.getElementById(id),{type:'doughnut',
+    data:{labels:labels,datasets:[{data:vals,backgroundColor:colors,hoverOffset:5}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{color:css('--text2'),font:{size:10},boxWidth:10,padding:6}},
+      tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return c.label+': R$'+c.parsed.toFixed(1)+'mm ('+(c.parsed/t*100).toFixed(0)+'%)';}}}}}});
+}
+
+// ---------- BRIDGES & KPI ----------
+function renderBridges(){
+  const period=state.bridgePeriod, vs=state.buBridgeVs;
+  const periodTxt=period==='month'?'Mês ('+MONTH_FULL[curMonth()].replace(' 2026','/26')+')':'Acumulado YTD';
+  const vsTxt=vs==='orc'?'vs Orçamento':'vs Ano Anterior';
+  document.getElementById('tab-bridges').innerHTML=`
+    <div class="tgrow">
+      <span class="tglabel">Período:</span>${toggleHTML('bridgePeriod',[{v:'month',t:'Mês'},{v:'ytd',t:'YTD'}])}
+      <span class="tglabel" style="margin-left:8px">Comparação:</span>${toggleHTML('buBridgeVs',[{v:'orc',t:'vs Orçamento'},{v:'aa',t:'vs Ano Anterior'}])}
+    </div>
+
+    <div class="card">
+      <h3>Bridge 1 — EBITDA Ajustado por componente</h3>
+      <div class="desc">Decomposição da variação de EBITDA por linha do DRE. ${periodTxt} ${vsTxt}. R$ mil.</div>
+      <div style="position:relative;height:360px"><canvas id="brEbitda"></canvas></div>
+      <div class="table-wrap" style="margin-top:16px" id="brEbitdaTable"></div>
+    </div>
+
+    <div class="card">
+      <h3>Bridge 2 — EBITDA Ajustado por segmento</h3>
+      <div class="desc">Contribuição de cada BU para a variação de EBITDA Ajustado. ${periodTxt} ${vsTxt}. R$ mil.</div>
+      <div style="position:relative;height:340px"><canvas id="brEbitdaSeg"></canvas></div>
+      <div class="table-wrap" style="margin-top:16px" id="brEbitdaSegTable"></div>
+    </div>
+
+    <div class="card">
+      <h3>Bridge 3 — Margem de Servir por BU</h3>
+      <div class="desc">Contribuição de cada BU, separando efeito de volume (top-line) e de margem (mix/preço/custo). ${periodTxt} ${vsTxt}. R$ mil.</div>
+      <div class="tgrow"><span class="tglabel">Isolar BU:</span>
+        <select id="bridgeBUSel" onchange="setState('bridgeBU',this.value)">
+          <option ${state.bridgeBU==='Total'?'selected':''}>Total (todas as BUs)</option>
+          <option ${state.bridgeBU==='Imagem'?'selected':''}>Imagem</option>
+          <option ${state.bridgeBU==='Hospitalar'?'selected':''}>Hospitalar</option>
+          <option ${state.bridgeBU==='Service'?'selected':''}>Service</option>
+          <option ${state.bridgeBU==='Locação Imagem'?'selected':''}>Locação Imagem</option>
+          <option ${state.bridgeBU==='Locação Hospitalar'?'selected':''}>Locação Hospitalar</option>
+        </select>
+      </div>
+      <div style="position:relative;height:360px"><canvas id="brServir"></canvas></div>
+      <div class="table-wrap" style="margin-top:16px" id="brServirTable"></div>
+    </div>
+
+    <div class="card">
+      <h3>KPI Analysis — EBITDA Ajustado por segmento (Mar/2026)</h3>
+      <div class="desc">Real vs Orçamento vs Ano Anterior · R$ mil · Δ margem em bps</div>
+      <div class="table-wrap" id="kpiTable"></div>
+      <div class="note">${DATA.kpi_note}</div>
+    </div>`;
+  drawBridgeEbitda();
+  drawBridgeEbitdaSeg();
+  drawBridgeServir();
+  drawKpiTable();
+}
+
+// Bridge 1 — EBITDA Aj by component
+function drawBridgeEbitda(){
+  const period=state.bridgePeriod, vs=state.buBridgeVs;
+  const b=DATA.bridges.find(x=>x.period===period&&x.vs===vs);
+  drawWaterfall('brEbitda',b.start,b.components,b.end);
+  const rows=b.components.map(c=>`<tr><td>${c.name}</td><td class="${c.v>=0?'cpos':'cneg'}">${c.v>=0?'+':''}${fmt(c.v)}</td><td>${(c.pct*100).toFixed(1)}%</td><td style="text-align:left">${c.rec||'–'}</td><td style="text-align:left">${c.ctrl||'–'}</td></tr>`).join('');
+  document.getElementById('brEbitdaTable').innerHTML=`<table><thead><tr><th style="min-width:200px">Componente</th><th>Impacto</th><th>% var.</th><th style="text-align:left">Recorrência</th><th style="text-align:left">Controle</th></tr></thead><tbody>
+    <tr class="sub"><td>${b.startLabel}</td><td>${fmt(b.start)}</td><td>–</td><td colspan="2" style="text-align:left">Ponto de partida</td></tr>${rows}
+    <tr class="tot"><td>EBITDA Aj — Real</td><td>${fmt(b.end)}</td><td>–</td><td colspan="2" style="text-align:left">Variação total: ${b.totalVar>=0?'+':''}${fmt(b.totalVar)}</td></tr></tbody></table>`;
+}
+
+// Bridge 2 — EBITDA Aj by segment (Ponte C)
+function drawBridgeEbitdaSeg(){
+  const key=(state.bridgePeriod==='month'?'mes':'ytd')+'_'+state.buBridgeVs;
+  const p=DATA.ponteC[key];
+  drawWaterfall('brEbitdaSeg',p.base,p.comps,p.real);
+  const rows=p.comps.map(c=>`<tr><td>${c.name}</td><td class="${c.v>=0?'cpos':'cneg'}">${c.v>=0?'+':''}${fmt(c.v)}</td></tr>`).join('');
+  const baseLabel=state.buBridgeVs==='orc'?'EBITDA Aj — Orçamento':'EBITDA Aj — Ano Anterior';
+  document.getElementById('brEbitdaSegTable').innerHTML=`<table><thead><tr><th style="min-width:220px">Segmento</th><th>Impacto (R$ mil)</th></tr></thead><tbody>
+    <tr class="sub"><td>${baseLabel}</td><td>${fmt(p.base)}</td></tr>${rows}
+    <tr class="tot"><td>EBITDA Aj — Real</td><td>${fmt(p.real)}</td></tr></tbody></table>`;
+}
+
+// Bridge 3 — Margem de Servir by BU (Ponte B)
+function drawBridgeServir(){
+  const key=(state.bridgePeriod==='month'?'mes':'ytd')+'_'+state.buBridgeVs;
+  const pb=DATA.ponteB[key];const bu=state.bridgeBU;
+  let comps,base,real;
+  if(bu==='Total'){comps=pb.comps;base=pb.base;real=pb.real;}
+  else{comps=pb.comps.filter(c=>c.name.startsWith(bu+' —'));base=0;real=comps.reduce((a,c)=>a+c.v,0);}
+  drawWaterfall('brServir',base,comps,bu==='Total'?real:real);
+  const rows=comps.map(c=>`<tr><td>${c.name}</td><td class="${c.v>=0?'cpos':'cneg'}">${c.v>=0?'+':''}${fmt(c.v)}</td></tr>`).join('');
+  const baseLabel=state.buBridgeVs==='orc'?'Margem de Servir — Orçamento':'Margem de Servir — Ano Anterior';
+  document.getElementById('brServirTable').innerHTML=`<table><thead><tr><th style="min-width:280px">Componente</th><th>Impacto (R$ mil)</th></tr></thead><tbody>
+    ${bu==='Total'?`<tr class="sub"><td>${baseLabel}</td><td>${fmt(base)}</td></tr>`:''}${rows}
+    <tr class="tot"><td>${bu==='Total'?'Margem de Servir — Real':'Efeito líquido '+bu}</td><td>${fmt(real)}</td></tr></tbody></table>
+    <div class="note">${bu==='Total'?"Cada BU é quebrada em efeito Top-line (ΔROL × margem base) e efeito Margem (Δmargem% × ROL atual), separando volume de preço/mix/custo.":"Quebra do "+bu+" entre efeito de volume (top-line) e efeito de margem (mix/preço/custo)."}</div>`;
+}
+function drawKpiTable(){
+  const k=DATA.kpi_seg;
+  const rows=k.map(s=>`<tr><td>${s.seg}</td><td>${fmt(s.real)}</td><td>${fmt(s.bgt)}</td><td>${fmt(s.py)}</td>
+    <td class="${pctV(s.real,s.bgt)>=0?'cpos':'cneg'}">${pct(pctV(s.real,s.bgt))}</td><td class="${pctV(s.real,s.py)>=0?'cpos':'cneg'}">${pct(pctV(s.real,s.py))}</td>
+    <td class="${s.dbps>=0?'cpos':'cneg'}">${s.dbps>=0?'+':''}${Math.round(s.dbps)} bps</td></tr>`).join('');
+  const tot=k.reduce((a,s)=>({real:a.real+s.real,bgt:a.bgt+s.bgt,py:a.py+s.py}),{real:0,bgt:0,py:0});
+  document.getElementById('kpiTable').innerHTML=`<table><thead><tr><th style="min-width:130px">Segmento</th><th>Real mês</th><th>Orç mês</th><th>AA mês</th><th>Δ% Orç</th><th>Δ% AA</th><th>Δ Mg bps</th></tr></thead><tbody>${rows}
+    <tr class="tot"><td>Total EBITDA Aj.</td><td>${fmt(tot.real)}</td><td>${fmt(tot.bgt)}</td><td>${fmt(tot.py)}</td>
+    <td class="${pctV(tot.real,tot.bgt)>=0?'cpos':'cneg'}">${pct(pctV(tot.real,tot.bgt))}</td><td class="${pctV(tot.real,tot.py)>=0?'cpos':'cneg'}">${pct(pctV(tot.real,tot.py))}</td><td>–</td></tr></tbody></table>`;
+}
+
+// generic waterfall
+function drawWaterfall(id,start,comps,end,filt){
+  destroy(id);
+  const labels=['Base',...comps.map(c=>c.name),'Real'];
+  const floats=[];const colors=[];let run=start;
+  floats.push([0,start]);colors.push(css('--text3'));
+  comps.forEach(c=>{const from=run,to=run+c.v;floats.push([Math.min(from,to),Math.max(from,to)]);colors.push(c.v>=0?css('--teal'):css('--coral'));run=to;});
+  floats.push([0,run]);colors.push(css('--blue'));
+  charts[id]=new Chart(document.getElementById(id),{type:'bar',
+    data:{labels:labels,datasets:[{data:floats,backgroundColor:colors,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const i=c.dataIndex;if(i===0||i===labels.length-1)return 'R$ '+fmt(floats[i][1]);const cmp=comps[i-1];return (cmp.v>=0?'+':'')+fmt(cmp.v)+' R$ mil';}}}},
+      scales:{x:{grid:{display:false},ticks:{color:css('--text3'),font:{size:9},maxRotation:55,minRotation:55}},y:{grid:{color:css('--line')},ticks:{color:css('--text3'),callback:v=>v.toLocaleString('pt-BR')}}}}});
+}
+
+function baseOpts(prefix,money){
+  return {responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{color:css('--text2'),font:{size:11},boxWidth:12,padding:12,usePointStyle:true,pointStyle:'rectRounded'}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+(prefix||'')+(c.parsed.y!==undefined?c.parsed.y:c.parsed).toFixed(1)+(money?'mm':'')}}},
+    scales:{x:{grid:{display:false},ticks:{color:css('--text3'),font:{size:11}}},y:{grid:{color:css('--line')},ticks:{color:css('--text3'),callback:v=>(prefix||'')+v}}}};
+}
+
+render();
+</script>
+</body>
+</html>
